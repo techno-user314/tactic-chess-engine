@@ -1,2 +1,2 @@
-# tactic-chess-engine
-A basic chess engine. Built to have fun, not to win. :-)
+# Tactic - A heuristic chess engine
+A Python chess engine that I am building for fun.
