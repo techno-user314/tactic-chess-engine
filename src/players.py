@@ -50,5 +50,37 @@ class HumanPlayer(Player):
         self.move_finished = callback
         self.move_finished_args = args
 
+
 class Bot(Player):
-    pass
+    def __init__(self, is_white, live_board, analysis_board, logger):
+        super().__init__(is_white, live_board, analysis_board, logger)
+        self.move_scores = {}
+
+    def move(self, callback, args):
+        self.log("Bot thinking...\n")
+        for first_move in self.play_board.legal_moves:
+            board_after_move = chess.Board(self.play_board.fen())
+            board_after_move.push(first_move)
+
+            pos_score = self.score_pos(board_after_move)
+            self.move_scores.update({first_move:pos_score})
+
+        best_move_score = max(self.move_scores.values())
+        all_best_moves = [key for key, value in self.move_scores.items()
+                          if value == best_move_score]
+        self.play_board.play_move(all_best_moves[0])
+        self.move_scores = {}
+        callback(*args)
+
+    def material_count(self, board_pos, for_opponent=False):
+        for_color = not self.color if for_opponent else self.color
+        mat_count = 0
+        for piece_type in PIECE_VALUES.keys():
+            piece_squares = board_pos.pieces(piece_type, for_color)
+            mat_count += PIECE_VALUES[piece_type] * len(piece_squares)
+        return mat_count
+
+    def score_pos(self, board_pos):
+        my_mat = self.material_count(board_pos)
+        other_mat = self.material_count(board_pos, for_opponent=True)
+        return my_mat - other_mat
