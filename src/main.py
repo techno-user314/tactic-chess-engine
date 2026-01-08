@@ -56,18 +56,18 @@ class GameManager:
         self._analysis_log.pack(fill="both", expand=True)
         self._analysis_log.configure(state="disabled")
 
-    def set_game(self):
+    def set_players(self, player1class, player2class):
         white_board = AnalysisBoard(self._canvases[0])
         live_board = Board(self._canvases[1])
         black_board = AnalysisBoard(self._canvases[2])
 
-        self.white = HumanPlayer(
+        self.white = player1class(
             True,
             live_board,
             white_board,
             self.log_info
         )
-        self.black = HumanPlayer(
+        self.black = player2class(
             False,
             live_board,
             black_board,
@@ -92,5 +92,5 @@ class GameManager:
         self.white_turn = not self.white_turn
 
 g = GameManager()
-g.set_game()
+g.set_players(HumanPlayer, HumanPlayer)
 g.begin()
