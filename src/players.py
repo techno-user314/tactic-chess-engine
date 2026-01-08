@@ -23,7 +23,7 @@ class HumanPlayer(Player):
 
     def on_click(self, event):
         if self.play_board.is_game_over():
-            self.log("Game Over")
+            self.log("Game Over\n")
             return
         if self.play_board.turn == self.color:
             col = event.x // SQUARE_SIZE
