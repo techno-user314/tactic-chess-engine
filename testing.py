@@ -1,17 +1,14 @@
-import tkinter as tk
 import random
+import tkinter as tk
+from tkinter.scrolledtext import ScrolledText
 
 import chess
 
-PIECES = {
-    'P': '♙', 'N': '♘', 'B': '♗', 'R': '♖', 'Q': '♕', 'K': '♔',
-    'p': '♟', 'n': '♞', 'b': '♝', 'r': '♜', 'q': '♛', 'k': '♚'
-}
-PIECE_FONT = ("Arial", 36)
+from boards import Board
 
-SQUARE_SIZE = 64
-LIGHT_SQ = "#F0D9B5"
-DARK_SQ  = "#B58863"
+BOARD_SIZE = 512 # Board display size in pixels
+LOG_SIZE = (BOARD_SIZE * 3, 384)
+PADDING = 5
 
 def get_random_board():
     board = chess.Board()
@@ -24,44 +21,79 @@ def get_random_board():
         board.push(random_move)
     return board
 
-class Board:
-    def __init__(self, canvas):
-        self.board = chess.Board()
-        self.surface = canvas
+class Player:
+    def __init__(self):
+        self.move_function = None
+        self.analysis_board = None
+        self.analysis_log = None
 
-    def render(self):
-        # Draw the board and pieces
-        self.surface.delete("all")
-        for row in range(8):
-            for col in range(8):
-                self.surface.create_rectangle(
-                    col * SQUARE_SIZE,
-                    row * SQUARE_SIZE,
-                    col * SQUARE_SIZE + SQUARE_SIZE,
-                    row * SQUARE_SIZE + SQUARE_SIZE,
-                    fill=LIGHT_SQ if (row + col) % 2 == 0 else DARK_SQ,
-                    outline=""
-                )
-                square = chess.square(col, 7 - row)
-                piece = self.board.piece_at(square)
-                if piece:
-                    self.surface.create_text(
-                        col * SQUARE_SIZE + SQUARE_SIZE // 2,
-                        row * SQUARE_SIZE + SQUARE_SIZE // 2,
-                        text=PIECES[piece.symbol()],
-                        font=PIECE_FONT
-                    )
+    def start_analysis_board(self, canvas, log):
+        self.analysis_board = Board(canvas)
+        self.analysis_board.render()
+        self.analysis_log = log
 
-if __name__ == "__main__":
-    window = tk.Tk()
-    window.title("Chess")
+    def log_info(self, message):
+        self.analysis_log.configure(state="normal")
+        self.analysis_log.insert("end", message + "\n")
+        self.analysis_log.see("end")
+        self.analysis_log.configure(state="disabled")
 
-    canvas = tk.Canvas(
-        window, width=8 * SQUARE_SIZE, height=8 * SQUARE_SIZE
-    )
-    canvas.pack()
+class Game:
+    def __init__(self, player1, player2):
+        self.board = None
+        self.white = player1
+        self.black = player2
+        self.white_turn = True
 
-    b = Board(canvas)
-    b.board = get_random_board()
-    b.render()
-    window.mainloop()
+        # Initialize gui
+        self._root = tk.Tk()
+        self._root.title("Chess - Bot Development")
+        self._root.resizable(False, False)
+
+        # --- Frame for labels and canvases ---
+        canvas_frame = tk.Frame(self._root)
+        canvas_frame.pack(padx=PADDING, pady=PADDING)
+
+        # --- Labels row ---
+        labels = ["White Analysis", "Live Board", "Black Analysis"]
+        for i, label_text in enumerate(labels):
+            label = tk.Label(
+                canvas_frame,
+                text=label_text,
+                anchor="center",
+                font=("Arial", 25 if i == 1 else 13)
+            )
+            label.grid(row=0, column=i, pady=(0, 2))
+
+        # --- Canvases row ---
+        self._canvases = [tk.Canvas(
+            canvas_frame,
+            width=BOARD_SIZE,
+            height=BOARD_SIZE,
+            bg="lightgray",
+            highlightthickness=1,
+            highlightbackground="black"
+        ) for _ in range(3)]
+
+        for i, c in enumerate(self._canvases):
+            c.grid(row=1, column=i, padx=PADDING)
+
+        # --- Create read-only scrolling text box ---
+        text_frame = tk.Frame(self._root, width=LOG_SIZE[0], height=LOG_SIZE[1])
+        text_frame.pack(padx=PADDING, pady=(0, PADDING))
+        text_frame.pack_propagate(False)
+
+        self._analysis_log = ScrolledText(text_frame, wrap="word")
+        self._analysis_log.pack(fill="both", expand=True)
+        self._analysis_log.configure(state="disabled")
+
+    def start(self):
+        self.white.start_analysis_board(self._canvases[0], self._analysis_log)
+        self.black.start_analysis_board(self._canvases[2], self._analysis_log)
+
+        self.board = Board(self._canvases[1])
+        self.board.render()
+        self._root.mainloop()
+
+g = Game(Player(), Player())
+g.start()
