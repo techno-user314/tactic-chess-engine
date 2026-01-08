@@ -1,10 +1,17 @@
-import tkinter as tk
 import chess
+
+PIECES = {
+    'P': '♙', 'N': '♘', 'B': '♗', 'R': '♖', 'Q': '♕', 'K': '♔',
+    'p': '♟', 'n': '♞', 'b': '♝', 'r': '♜', 'q': '♛', 'k': '♚'
+}
+SQUARE_SIZE = 64
+LIGHT_SQ = "#F0D9B5"
+DARK_SQ  = "#B58863"
 
 class Board:
     def __init__(self, canvas):
-        self.board = chess.Board()
         self.surface = canvas
+        self.board = chess.Board()
 
     def render(self):
         # Draw the board and pieces
@@ -26,8 +33,13 @@ class Board:
                         col * SQUARE_SIZE + SQUARE_SIZE // 2,
                         row * SQUARE_SIZE + SQUARE_SIZE // 2,
                         text=PIECES[piece.symbol()],
-                        font=PIECE_FONT
+                        font=("Arial", 36)
                     )
+
+    def push_move(self, move):
+        if move in self.board.legal_moves:
+            self.board.push(move)
+            self.render()
 
 class LiveBoard(Board):
   pass
