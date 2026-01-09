@@ -8,6 +8,7 @@ PIECE_VALUES = {chess.PAWN:1,
                 chess.ROOK:5,
                 chess.QUEEN:10,
                 chess.KING:1000}
+BOT_DEPTH_PLY = 2
 
 class Player:
     def __init__(self, is_white, live_board, logger):
@@ -64,14 +65,25 @@ class Bot(Player):
             self.play_best_move()
 
     # --- Finding and playing a move ---
+    def get_move_score(self, move, board, depth):
+        board.push(move)
+        if depth == 0 or board.is_game_over():
+            best = self.evaluate_pos(board)
+        else:
+            best = -1e9 if board.turn == self.color else 1e9
+            chooser = max if board.turn == self.color else min
+            for next_move in board.legal_moves:
+                score = self.get_move_score(next_move, board, depth - 1)
+                best = chooser(best, score)
+        board.pop()
+        return best
+
     def play_best_move(self):
         self.move_scores = {}
         test_board = chess.Board(self.play_board.fen())
         for move in self.play_board.legal_moves:
-            test_board.push(move)
-            score = self.evaluate_pos(test_board)
-            self.move_scores.update({move: score})
-            test_board.pop()
+            score = self.get_move_score(move, test_board, BOT_DEPTH_PLY)
+            self.move_scores.update({move:score})
         best_move_score = max(self.move_scores.values())
         all_good_moves = [key for key, value in self.move_scores.items()
                           if value == best_move_score]
