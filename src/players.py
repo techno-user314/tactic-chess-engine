@@ -1,3 +1,4 @@
+from random import choice as pick_from
 import chess
 from boards import SQUARE_SIZE
 
@@ -9,7 +10,7 @@ PIECE_VALUES = {chess.PAWN:1,
                 chess.KING:1000}
 
 class Player:
-    def __init__(self, is_white, live_board, analysis_board, logger):
+    def __init__(self, is_white, live_board, logger):
         self.color = is_white
         self.play_board = live_board
         self.log = logger
@@ -17,22 +18,21 @@ class Player:
         if self.color: self.log("White player created\n")
         else: self.log("Black player created\n")
 
-    def move(self, callback, args):
-        pass
+    def is_my_turn(self):
+        if self.play_board.is_game_over():
+            self.log("Game Over\n")
+            return False
+        elif self.play_board.turn == self.color:
+            return True
+        return False
 
 class HumanPlayer(Player):
     def __init__(self, is_white, live_board, analysis_board, logger):
-        super().__init__(is_white, live_board, analysis_board, logger)
+        super().__init__(is_white, live_board, logger)
         self.play_board.surface.bind("<Button-1>", self.on_click, add="+")
 
-        self.move_finished = lambda a, b: a * b
-        self.move_finished_args = (10, 20)
-
     def on_click(self, event):
-        if self.play_board.is_game_over():
-            self.log("Game Over\n")
-            return
-        if self.play_board.turn == self.color:
+        if self.is_my_turn():
             col = event.x // SQUARE_SIZE
             row = event.y // SQUARE_SIZE
             square = chess.square(col, 7 - row)
@@ -47,40 +47,39 @@ class HumanPlayer(Player):
                     if move.from_square == self.play_board.selected_square \
                             and move.to_square == square:
                         self.play_board.play_move(move)
-                        self.move_finished(*self.move_finished_args)
                         break
                 self.play_board.selected_square = None
                 self.play_board.render()
 
-    def move(self, callback, args):
-        self.move_finished = callback
-        self.move_finished_args = args
-
 class Bot(Player):
     def __init__(self, is_white, live_board, analysis_board, logger):
-        super().__init__(is_white, live_board, analysis_board, logger)
+        super().__init__(is_white, live_board, logger)
+        self.play_board.surface.bind("<Button-1>", self.on_click, add="+")
+
         self.move_scores = {}
 
-    def move(self, callback, args):
-        if self.play_board.is_game_over():
-            self.log("Game Over\n")
-            return
-        if self.play_board.turn == self.color:
-            self.log("Bot thinking...\n")
-            for first_move in self.play_board.legal_moves:
-                board_after_move = chess.Board(self.play_board.fen())
-                board_after_move.push(first_move)
-    
-                pos_score = self.score_pos(board_after_move)
-                self.move_scores.update({first_move:pos_score})
-    
-            best_move_score = max(self.move_scores.values())
-            all_best_moves = [key for key, value in self.move_scores.items()
-                              if value == best_move_score]
-            self.play_board.play_move(all_best_moves[0])
-            self.move_scores = {}
-            callback(*args)
+    # --- Event response ---
+    def on_click(self, event):
+        if self.is_my_turn():
+            self.play_best_move()
 
+    # --- Finding and playing a move ---
+    def play_best_move(self):
+        self.move_scores = {}
+        test_board = chess.Board(self.play_board.fen())
+        for move in self.play_board.legal_moves:
+            test_board.push(move)
+            score = self.evaluate_pos(test_board)
+            self.move_scores.update({move: score})
+            test_board.pop()
+        best_move_score = max(self.move_scores.values())
+        all_good_moves = [key for key, value in self.move_scores.items()
+                          if value == best_move_score]
+        best_move = pick_from(all_good_moves)
+
+        self.play_board.play_move(best_move)
+
+    # --- Helper functions ---
     def material_count(self, board_pos, for_opponent=False):
         for_color = not self.color if for_opponent else self.color
         mat_count = 0
@@ -89,7 +88,9 @@ class Bot(Player):
             mat_count += PIECE_VALUES[piece_type] * len(piece_squares)
         return mat_count
 
-    def score_pos(self, board_pos):
-        my_mat = self.material_count(board_pos)
-        other_mat = self.material_count(board_pos, for_opponent=True)
+    # --- Position scoring logic ---
+    # Override this method to customize the bot
+    def evaluate_pos(self, board):
+        my_mat = self.material_count(board)
+        other_mat = self.material_count(board, for_opponent=True)
         return my_mat - other_mat
