@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
 
 from boards import Board, AnalysisBoard
-from players import HumanPlayer
+from players import HumanPlayer, Bot
 
 BOARD_SIZE = 512 # Board display size in pixels
 LOG_SIZE = (BOARD_SIZE * 3, 384)
@@ -12,7 +12,6 @@ class GameManager:
     def __init__(self):
         self.white = None
         self.black = None
-        self.white_turn = True
 
         # --- Initialize gui ---
         self._root = tk.Tk()
@@ -75,22 +74,14 @@ class GameManager:
         )
 
     def begin(self):
-        self._root.after(1000, self.update_turn)
         self._root.mainloop()
 
     # --- Callback functions for the players ---
-    def log_info(self, text):
+    def log_info(self, text, clear_text=False):
         self._analysis_log.configure(state="normal")
         self._analysis_log.insert(tk.END, text)
         self._analysis_log.configure(state="disabled")
 
-    def update_turn(self):
-        if self.white_turn:
-            self.white.move(self._root.after, (100, self.update_turn))
-        else:
-            self.black.move(self._root.after, (100, self.update_turn))
-        self.white_turn = not self.white_turn
-
 g = GameManager()
-g.set_players(HumanPlayer, HumanPlayer)
+g.set_players(HumanPlayer, Bot)
 g.begin()
