@@ -4,7 +4,7 @@ PIECES = {
     'P': '♙', 'N': '♘', 'B': '♗', 'R': '♖', 'Q': '♕', 'K': '♔',
     'p': '♟', 'n': '♞', 'b': '♝', 'r': '♜', 'q': '♛', 'k': '♚'
 }
-SQUARE_SIZE = 64
+SQUARE_SIZE = 54
 LIGHT_SQ = "#F0D9B5"
 DARK_SQ = "#B58863"
 
