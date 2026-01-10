@@ -10,6 +10,7 @@ PIECE_VALUES = {chess.PAWN:1,
                 chess.KING:1000}
 BOT_DEPTH_PLY = 2
 
+
 class Player:
     def __init__(self, is_white, live_board, controls, logger):
         self.color = is_white
@@ -29,10 +30,26 @@ class Player:
             return True
         return False
 
+    def click_board(self, board, click_x, click_y):
+        col = click_x // SQUARE_SIZE
+        row = click_y // SQUARE_SIZE
+        square = chess.square(col, 7 - row)
+        piece = board.piece_at(square)
+        piece = piece if piece and piece.color == self.color else None
+        if board.selected_square is not None:
+            for move in board.legal_moves:
+                if move.from_square == board.selected_square \
+                        and move.to_square == square:
+                    board.play_move(move)
+                    break
+        board.selected_square = square if piece else None
+        board.render()
+
     def undo_ply(self, event):
         if self.color and self.play_board.ply() > 0:
             self.play_board.pop()
             self.play_board.render()
+
 
 class HumanPlayer(Player):
     def __init__(self, is_white, live_board, analysis_board, controls, logger):
@@ -41,20 +58,8 @@ class HumanPlayer(Player):
 
     def on_click(self, event):
         if self.is_my_turn():
-            col = event.x // SQUARE_SIZE
-            row = event.y // SQUARE_SIZE
+            self.click_board(self.play_board, event.x, event.y)
 
-            square = chess.square(col, 7 - row)
-            piece = self.play_board.piece_at(square)
-            piece = piece if piece and piece.color == self.color else None
-            if self.play_board.selected_square is not None:
-                for move in self.play_board.legal_moves:
-                    if move.from_square == self.play_board.selected_square \
-                            and move.to_square == square:
-                        self.play_board.play_move(move)
-                        break
-            self.play_board.selected_square = square if piece else None
-            self.play_board.render()
 
 class Bot(Player):
     def __init__(self, is_white, live_board, analysis_board, controls, logger):
@@ -63,14 +68,21 @@ class Bot(Player):
         controls[trigger_button].bind("<Button-1>", self.bot_trigger, add="+")
         controls[trigger_button].bind("<Button-1>", self.bot_trigger, add="+")
 
-        self.move_scores = {}
+        self.analysis_board = analysis_board
+        self.analysis_board.surface.bind("<Button-1>", self.on_analysis_click)
 
+        self.move_scores = {}
         self._search_calls = 0
 
     # --- Event response ---
     def bot_trigger(self, event):
         if self.is_my_turn():
             self.play_best_move()
+
+    # Still WIP
+    def on_analysis_click(self, event):
+        if self.move_scores:
+            self.click_board(self.analysis_board, event.x, event.y)
 
     # --- Finding and playing a move ---
     def get_move_score(self, move, board, depth):
@@ -93,16 +105,26 @@ class Bot(Player):
         self._search_calls = 0
         for move in self.play_board.legal_moves:
             score = self.get_move_score(move, test_board, BOT_DEPTH_PLY)
-            self.move_scores.update({move:score})
+            self.move_scores.update({move.uci():score})
         best_move_score = max(self.move_scores.values())
         all_good_moves = [key for key, value in self.move_scores.items()
                           if value == best_move_score]
-        best_move = pick_from(all_good_moves)
+        best_move = chess.Move.from_uci(pick_from(all_good_moves))
+
+        # Log move search info
         self.log(f"{"White" if self.color else "Black"} bot"
                  + f" picked {self.play_board.san(best_move)} randomly"
                  + f" out of {len(all_good_moves)} considered moves."
                  + f"\n    - It took {self._search_calls} recursions"
                  + f" at depth {BOT_DEPTH_PLY}.\n")
+        if len(all_good_moves) < 5:
+            alog_text = f"{"White" if self.color else "Black"} considered"
+            for move in all_good_moves:
+                m = chess.Move.from_uci(move)
+                m = self.play_board.san(m)
+                alog_text += f"\n    - {m}"
+            self.log(alog_text, True)
+
         self.play_board.play_move(best_move)
 
     # --- Helper functions ---
