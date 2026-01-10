@@ -113,6 +113,7 @@ class GameManager:
         if not analysis:
             self._game_log.configure(state="normal")
             self._game_log.insert(tk.END, text)
+            self._game_log.see(tk.END)
             self._game_log.configure(state="disabled")
         else:
             self._analysis_log.configure(state="normal")
