@@ -43,21 +43,18 @@ class HumanPlayer(Player):
         if self.is_my_turn():
             col = event.x // SQUARE_SIZE
             row = event.y // SQUARE_SIZE
-            square = chess.square(col, 7 - row)
 
-            if self.play_board.selected_square is None:
-                piece = self.play_board.piece_at(square)
-                if piece and piece.color == self.color:
-                    self.play_board.selected_square = square
-                    self.play_board.render()
-            else:
+            square = chess.square(col, 7 - row)
+            piece = self.play_board.piece_at(square)
+            piece = piece if piece and piece.color == self.color else None
+            if self.play_board.selected_square is not None:
                 for move in self.play_board.legal_moves:
                     if move.from_square == self.play_board.selected_square \
                             and move.to_square == square:
                         self.play_board.play_move(move)
                         break
-                self.play_board.selected_square = None
-                self.play_board.render()
+            self.play_board.selected_square = square if piece else None
+            self.play_board.render()
 
 class Bot(Player):
     def __init__(self, is_white, live_board, analysis_board, controls, logger):
