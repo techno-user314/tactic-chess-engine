@@ -123,8 +123,9 @@ class Bot(Player):
             alog_text += f"\n    - {m}"
         self.log(alog_text, True)
 
-        # Sync the analysis board with the current position minus black move
+        # Sync the analysis board with the current position minus last move
         self.analysis_board.set_fen(self.play_board.fen())
+        self.analysis_board.set_scores(self.move_scores)
         self.analysis_board.selected_square = best_move.from_square
         self.analysis_board.render()
 
