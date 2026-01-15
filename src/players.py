@@ -79,7 +79,6 @@ class Bot(Player):
         if self.is_my_turn():
             self.play_best_move()
 
-    # Still WIP
     def on_analysis_click(self, event):
         if self.move_scores:
             self.click_board(self.analysis_board, event.x, event.y)
@@ -117,13 +116,17 @@ class Bot(Player):
                  + f" out of {len(all_good_moves)} considered moves."
                  + f"\n    - It took {self._search_calls} recursions"
                  + f" at depth {BOT_DEPTH_PLY}.\n")
-        if len(all_good_moves) < 5:
-            alog_text = f"{"White" if self.color else "Black"} considered"
-            for move in all_good_moves:
-                m = chess.Move.from_uci(move)
-                m = self.play_board.san(m)
-                alog_text += f"\n    - {m}"
-            self.log(alog_text, True)
+        alog_text = f"{"White" if self.color else "Black"} considered"
+        for move in all_good_moves:
+            m = chess.Move.from_uci(move)
+            m = self.play_board.san(m)
+            alog_text += f"\n    - {m}"
+        self.log(alog_text, True)
+
+        # Sync the analysis board with the current position minus black move
+        self.analysis_board.set_fen(self.play_board.fen())
+        self.analysis_board.selected_square = best_move.from_square
+        self.analysis_board.render()
 
         self.play_board.play_move(best_move)
 
