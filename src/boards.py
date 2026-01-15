@@ -37,8 +37,8 @@ class Board(chess.Board):
                         text=PIECES[piece.symbol()],
                         font=("Arial", 36)
                     )
+        # Draw selection box
         if self.selected_square is not None:
-            # Draw selection box
             col = chess.square_file(self.selected_square)
             row = 7 - chess.square_rank(self.selected_square)
             self.surface.create_rectangle(
@@ -55,7 +55,6 @@ class Board(chess.Board):
                 move for move in self.legal_moves
                 if move.from_square == self.selected_square
             ]
-
             for move in legal_moves_for_piece:
                 col = chess.square_file(move.to_square)
                 row = 7 - chess.square_rank(move.to_square)
@@ -87,4 +86,34 @@ class Board(chess.Board):
             self.render()
 
 class AnalysisBoard(Board):
-    pass
+    def __init__(self, canvas):
+        super().__init__(canvas)
+        self.scores = {}
+
+    def set_scores(self, move_scores):
+        self.scores = move_scores
+
+    def render(self):
+        super().render()
+        if self.selected_square is not None:
+            # Get legal moves for selected piece
+            legal_moves_for_piece = [
+                move for move in self.legal_moves
+                if move.from_square == self.selected_square
+            ]
+            for move in legal_moves_for_piece:
+                if move.uci() in self.scores.keys():
+                    col = chess.square_file(move.to_square)
+                    row = 7 - chess.square_rank(move.to_square)
+
+                    # Render the score for this move
+                    self.surface.create_text(
+                        col * SQUARE_SIZE + 16,
+                        row * SQUARE_SIZE + 12,
+                        text=self.scores[move.uci()],
+                        font=("Helvetica", 12, "bold"),
+                        fill="yellow"
+                    )
+    
+    def play_move(self, move):
+        pass
