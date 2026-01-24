@@ -1,8 +1,8 @@
 import tkinter as tk
-from tkinter.scrolledtext import ScrolledText
 
 from boards import Board, AnalysisBoard
 from players import HumanPlayer, Bot
+from ui_helper import *
 
 BOARD_SIZE = 432 # Board display size in pixels
 LOG_SIZE = (BOARD_SIZE * 3, 320)
@@ -18,35 +18,21 @@ class GameManager:
         self._root.title("Chess - Bot Development")
         self._root.resizable(False, False)
 
-        # Frame for labels and canvases
+        # --- Boards ---
         canvas_frame = tk.Frame(self._root)
         canvas_frame.pack(padx=PADDING, pady=PADDING)
 
         # Board labels
-        labels = ["White Analysis", "Live Board", "Black Analysis"]
-        for i, label_text in enumerate(labels):
-            label = tk.Label(
-                canvas_frame,
-                text=label_text,
-                anchor="center",
-                font=("Arial", 25 if i == 1 else 13)
-            )
-            label.grid(row=0, column=i, pady=(0, 2))
+        ui_label(canvas_frame, "White Analysis", 13, column=0)
+        ui_label(canvas_frame, "Live Board", 25, column=1)
+        ui_label(canvas_frame, "Black Analysis", 13, column=2)
 
         # Board canvases row
-        self._canvases = [tk.Canvas(
-            canvas_frame,
-            width=BOARD_SIZE,
-            height=BOARD_SIZE,
-            bg="lightgray",
-            highlightthickness=1,
-            highlightbackground="black"
-        ) for _ in range(3)]
+        self._canvases = [ui_square_canvas(canvas_frame, BOARD_SIZE,
+                                           row=1, column=i, padding=PADDING)
+                          for i in range(3)]
 
-        for i, c in enumerate(self._canvases):
-            c.grid(row=1, column=i, padx=PADDING)
-
-        # Button bar
+        # --- Player controls ---
         bar = tk.Frame(self._root, bg="lightgray", height=50)
         bar.pack(side="top", fill="x", pady=PADDING, padx=PADDING)
         button_container = tk.Frame(bar, bg="lightgray")
@@ -61,29 +47,17 @@ class GameManager:
         self._button[1].pack(side="left", padx=PADDING, pady=PADDING)
         self._button[2].pack(side="left", padx=PADDING, pady=PADDING)
 
-        # Read-only scrolling text box for logging
+        # --- Read-only scrolling text boxes for logging ---
         text_frame = tk.Frame(self._root, width=LOG_SIZE[0], height=LOG_SIZE[1])
         text_frame.pack(padx=PADDING, pady=(0, PADDING))
         text_frame.pack_propagate(False)
 
-        #self._analysis_log = ScrolledText(text_frame, wrap="word")
-        #self._analysis_log.pack(fill="both", expand=True)
-        #self._analysis_log.configure(state="disabled")
-
-        # Use grid inside this frame
         inner = tk.Frame(text_frame)
         inner.pack(fill="both", expand=True)
-        inner.columnconfigure(0, weight=1)
-        inner.columnconfigure(1, weight=1)
         inner.rowconfigure(0, weight=1)
 
-        self._game_log = ScrolledText(inner, wrap="word")
-        self._game_log.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
-        self._game_log.configure(state="disabled")
-
-        self._analysis_log = ScrolledText(inner, wrap="word")
-        self._analysis_log.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
-        self._analysis_log.configure(state="disabled")
+        self._game_log = ui_text_box(inner, column=0)
+        self._analysis_log = ui_text_box(inner, column=1)
 
     def set_players(self, player1class, player2class):
         white_board = AnalysisBoard(self._canvases[0])
@@ -108,7 +82,7 @@ class GameManager:
     def begin(self):
         self._root.mainloop()
 
-    # --- Callback functions for the players ---
+    # --- Callback functions ---
     def log_info(self, text, analysis=False):
         if not analysis:
             self._game_log.configure(state="normal")
