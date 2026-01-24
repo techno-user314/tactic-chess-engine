@@ -22,15 +22,15 @@ class GameManager:
         canvas_frame = tk.Frame(self._root)
         canvas_frame.pack(padx=PADDING, pady=PADDING)
 
-        # Board labels
         ui_label(canvas_frame, "White Analysis", 13, column=0)
         ui_label(canvas_frame, "Live Board", 25, column=1)
         ui_label(canvas_frame, "Black Analysis", 13, column=2)
-
-        # Board canvases row
-        self._canvases = [ui_square_canvas(canvas_frame, BOARD_SIZE,
-                                           row=1, column=i, padding=PADDING)
-                          for i in range(3)]
+        canvases = [ui_square_canvas(canvas_frame, BOARD_SIZE,
+                                     row=1, column=i, padding=PADDING)
+                    for i in range(3)]
+        self.white_board = AnalysisBoard(canvases[0])
+        self.live_board = Board(canvases[1])
+        self.black_board = AnalysisBoard(canvases[2])
 
         # --- Player controls ---
         bar = tk.Frame(self._root, bg="lightgray", height=50)
@@ -38,7 +38,6 @@ class GameManager:
         button_container = tk.Frame(bar, bg="lightgray")
         button_container.place(relx=0.5, rely=0.5, anchor="center")
 
-        # Buttons
         self._button = [None, None, None]
         self._button[0] = tk.Button(button_container, text="Trigger White Bot")
         self._button[1] = tk.Button(button_container, text="Undo 1 Ply")
@@ -60,29 +59,39 @@ class GameManager:
         self._analysis_log = ui_text_box(inner, column=1)
 
     def set_players(self, player1class, player2class):
-        white_board = AnalysisBoard(self._canvases[0])
-        live_board = Board(self._canvases[1])
-        black_board = AnalysisBoard(self._canvases[2])
-
         self.white = player1class(
             True,
-            live_board,
-            white_board,
-            self._button,
+            self.live_board,
+            self.white_board,
             self.log_info
         )
         self.black = player2class(
             False,
-            live_board,
-            black_board,
-            self._button,
+            self.live_board,
+            self.black_board,
             self.log_info
         )
 
     def begin(self):
+        self._button[1].bind("<Button-1>", self.undo_ply, add="+")
+
+        self.live_board.surface.bind("<Button-1>", self.white.on_click, add="+")
+        self.live_board.surface.bind("<Button-1>", self.black.on_click, add="+")
+
+        self.white_board.surface.bind("<Button-1>", self.white.on_analysis_click)
+        self.black_board.surface.bind("<Button-1>", self.black.on_analysis_click)
+
+        self._button[0].bind("<Button-1>", self.white.bot_trigger, add="+")
+        self._button[2].bind("<Button-1>", self.black.bot_trigger, add="+")
+
         self._root.mainloop()
 
+
     # --- Callback functions ---
+    def undo_ply(self, event):
+        self.live_board.pop()
+        self.live_board.render()
+
     def log_info(self, text, analysis=False):
         if not analysis:
             self._game_log.configure(state="normal")
