@@ -12,12 +12,10 @@ BOT_DEPTH_PLY = 2
 
 
 class Player:
-    def __init__(self, is_white, live_board, controls, logger):
+    def __init__(self, is_white, live_board, logger):
         self.color = is_white
         self.play_board = live_board
         self.log = logger
-
-        controls[1].bind("<Button-1>", self.undo_ply, add="+")
 
         if self.color: self.log("White player created\n")
         else: self.log("Black player created\n")
@@ -29,6 +27,16 @@ class Player:
         elif self.play_board.turn == self.color:
             return True
         return False
+
+    def bot_trigger(self, event):
+        pass
+
+    def on_click(self, event):
+        if self.is_my_turn():
+            self.click_board(self.play_board, event.x, event.y)
+
+    def on_analysis_click(self, event):
+        pass
 
     def click_board(self, board, click_x, click_y):
         col = click_x // SQUARE_SIZE
@@ -45,31 +53,17 @@ class Player:
         board.selected_square = square if piece else None
         board.render()
 
-    def undo_ply(self, event):
-        if self.color and self.play_board.ply() > 0:
-            self.play_board.pop()
-            self.play_board.render()
-
 
 class HumanPlayer(Player):
-    def __init__(self, is_white, live_board, analysis_board, controls, logger):
-        super().__init__(is_white, live_board, controls, logger)
-        self.play_board.surface.bind("<Button-1>", self.on_click, add="+")
-
-    def on_click(self, event):
-        if self.is_my_turn():
-            self.click_board(self.play_board, event.x, event.y)
+    def __init__(self, is_white, live_board, analysis_board, logger):
+        super().__init__(is_white, live_board, logger)
 
 
 class Bot(Player):
-    def __init__(self, is_white, live_board, analysis_board, controls, logger):
-        super().__init__(is_white, live_board, controls, logger)
-        trigger_button = 2 - int(self.color) * 2
-        controls[trigger_button].bind("<Button-1>", self.bot_trigger, add="+")
-        controls[trigger_button].bind("<Button-1>", self.bot_trigger, add="+")
+    def __init__(self, is_white, live_board, analysis_board, logger):
+        super().__init__(is_white, live_board, logger)
 
         self.analysis_board = analysis_board
-        self.analysis_board.surface.bind("<Button-1>", self.on_analysis_click)
 
         self.move_scores = {}
         self._search_calls = 0
