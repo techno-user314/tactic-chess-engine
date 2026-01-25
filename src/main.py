@@ -1,7 +1,9 @@
 import tkinter as tk
+from tkinter import ttk
 
 from boards import Board, AnalysisBoard
 from players import HumanPlayer, Bot
+from bot_loader import get_bots
 from ui_helper import *
 
 BOARD_SIZE = 432 # Board display size in pixels
@@ -33,18 +35,33 @@ class GameManager:
         self.black_board = AnalysisBoard(canvases[2])
 
         # --- Player controls ---
-        bar = tk.Frame(self._root, bg="lightgray", height=50)
-        bar.pack(side="top", fill="x", pady=PADDING, padx=PADDING)
-        button_container = tk.Frame(bar, bg="lightgray")
-        button_container.place(relx=0.5, rely=0.5, anchor="center")
+        self._bots = get_bots()
+        player_names = ["HumanPlayer"] + list(self._bots.keys())
 
-        self._button = [None, None, None]
-        self._button[0] = tk.Button(button_container, text="Trigger White Bot")
-        self._button[1] = tk.Button(button_container, text="Undo 1 Ply")
-        self._button[2] = tk.Button(button_container, text="Trigger Black Bot")
-        self._button[0].pack(side="left", padx=PADDING, pady=PADDING)
-        self._button[1].pack(side="left", padx=PADDING, pady=PADDING)
-        self._button[2].pack(side="left", padx=PADDING, pady=PADDING)
+        controls_bar = tk.Frame(self._root, height=50)
+        controls_bar.pack(side="top", fill="x", pady=PADDING, padx=PADDING)
+        controls_bar.grid_propagate(False)
+        for i in range(5):
+            controls_bar.grid_columnconfigure(i, weight=2 if i%4==0 else 1)
+
+        self.white_btn = ttk.Button(controls_bar, text="Trigger White Bot")
+        self.white_btn.grid(row=0, column=1)
+
+        self.undo_btn = ttk.Button(controls_bar, text="Undo 1 Ply")
+        self.undo_btn.grid(row=0, column=2)
+
+        self.black_btn = ttk.Button(controls_bar, text="Trigger Black Bot")
+        self.black_btn.grid(row=0, column=3)
+
+        self.white_combo = ttk.Combobox(controls_bar, values=player_names,
+                                   state="readonly", width=25)
+        self.white_combo.grid(row=0, column=0, padx=PADDING)
+        self.white_combo.current(0)
+
+        self.black_combo = ttk.Combobox(controls_bar, values=player_names,
+                                    state="readonly", width=25)
+        self.black_combo.grid(row=0, column=4, padx=PADDING)
+        self.black_combo.current(0)
 
         # --- Read-only scrolling text boxes for logging ---
         text_frame = tk.Frame(self._root, width=LOG_SIZE[0], height=LOG_SIZE[1])
@@ -57,6 +74,7 @@ class GameManager:
 
         self._game_log = ui_text_box(inner, column=0)
         self._analysis_log = ui_text_box(inner, column=1)
+
 
     def set_players(self, player1class, player2class):
         self.white = player1class(
@@ -72,8 +90,9 @@ class GameManager:
             self.log_info
         )
 
+
     def begin(self):
-        self._button[1].bind("<Button-1>", self.undo_ply, add="+")
+        self.undo_btn.bind("<Button-1>", self.undo_ply, add="+")
 
         self.live_board.surface.bind("<Button-1>", self.white.on_click, add="+")
         self.live_board.surface.bind("<Button-1>", self.black.on_click, add="+")
@@ -81,16 +100,18 @@ class GameManager:
         self.white_board.surface.bind("<Button-1>", self.white.on_analysis_click)
         self.black_board.surface.bind("<Button-1>", self.black.on_analysis_click)
 
-        self._button[0].bind("<Button-1>", self.white.bot_trigger, add="+")
-        self._button[2].bind("<Button-1>", self.black.bot_trigger, add="+")
+        self.white_btn.bind("<Button-1>", self.white.bot_trigger, add="+")
+        self.black_btn.bind("<Button-1>", self.black.bot_trigger, add="+")
 
         self._root.mainloop()
 
 
     # --- Callback functions ---
     def undo_ply(self, event):
-        self.live_board.pop()
-        self.live_board.render()
+        if self.live_board.ply() > 0:
+            self.live_board.pop()
+            self.live_board.render()
+
 
     def log_info(self, text, analysis=False):
         if not analysis:
