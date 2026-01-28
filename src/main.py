@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from boards import Board, AnalysisBoard
-from players import HumanPlayer, Bot
+from players import HumanPlayer
 from bot_loader import get_bots
 from ui_helper import *
 
@@ -14,6 +14,7 @@ class GameManager:
     def __init__(self):
         self.white = None
         self.black = None
+        self.bindings = [None, None, None, None, None, None]
 
         # --- Initialize gui ---
         self._root = tk.Tk()
@@ -44,19 +45,19 @@ class GameManager:
         for i in range(5):
             controls_bar.grid_columnconfigure(i, weight=2 if i%4==0 else 1)
 
-        self.white_btn = ttk.Button(controls_bar, text="Trigger White Bot")
-        self.white_btn.grid(row=0, column=1)
-
         self.undo_btn = ttk.Button(controls_bar, text="Undo 1 Ply")
         self.undo_btn.grid(row=0, column=2)
 
-        self.black_btn = ttk.Button(controls_bar, text="Trigger Black Bot")
-        self.black_btn.grid(row=0, column=3)
-
         self.white_combo = ttk.Combobox(controls_bar, values=player_names,
-                                   state="readonly", width=25)
+                                        state="readonly", width=25)
         self.white_combo.grid(row=0, column=0, padx=PADDING)
         self.white_combo.current(0)
+
+        self.white_btn = ttk.Button(controls_bar, text="Trigger White Bot")
+        self.white_btn.grid(row=0, column=1)
+
+        self.black_btn = ttk.Button(controls_bar, text="Trigger Black Bot")
+        self.black_btn.grid(row=0, column=3)
 
         self.black_combo = ttk.Combobox(controls_bar, values=player_names,
                                     state="readonly", width=25)
@@ -76,33 +77,48 @@ class GameManager:
         self._analysis_log = ui_text_box(inner, column=1)
 
 
-    def set_players(self, player1class, player2class):
-        self.white = player1class(
+    def set_player1(self, player_class):
+        if self.bindings[0] is not None:
+            self.live_board.surface.unbind("<Button-1>", self.bindings[0])
+            self.white_board.surface.unbind("<Button-1>", self.bindings[1])
+            self.white_btn.unbind("<Button-1>", self.bindings[2])
+        self.white = player_class(
             True,
             self.live_board,
             self.white_board,
             self.log_info
         )
-        self.black = player2class(
+        self.bindings[0] = self.live_board.surface.bind(
+            "<Button-1>", self.white.on_click, add="+")
+        self.bindings[1] = self.white_board.surface.bind(
+            "<Button-1>", self.white.on_analysis_click)
+        self.bindings[2] = self.white_btn.bind(
+            "<Button-1>", self.white.bot_trigger, add="+")
+
+
+    def set_player2(self, player_class):
+        if self.bindings[3] is not None:
+            self.live_board.surface.unbind("<Button-1>", self.bindings[3])
+            self.black_board.surface.unbind("<Button-1>", self.bindings[4])
+            self.black_btn.unbind("<Button-1>", self.bindings[5])
+        self.black = player_class(
             False,
             self.live_board,
             self.black_board,
             self.log_info
         )
+        self.bindings[3] = self.live_board.surface.bind(
+            "<Button-1>", self.black.on_click, add="+")
+        self.bindings[4] = self.black_board.surface.bind(
+            "<Button-1>", self.black.on_analysis_click)
+        self.bindings[5] = self.black_btn.bind(
+            "<Button-1>", self.black.bot_trigger, add="+")
 
 
     def begin(self):
         self.undo_btn.bind("<Button-1>", self.undo_ply, add="+")
-
-        self.live_board.surface.bind("<Button-1>", self.white.on_click, add="+")
-        self.live_board.surface.bind("<Button-1>", self.black.on_click, add="+")
-
-        self.white_board.surface.bind("<Button-1>", self.white.on_analysis_click)
-        self.black_board.surface.bind("<Button-1>", self.black.on_analysis_click)
-
-        self.white_btn.bind("<Button-1>", self.white.bot_trigger, add="+")
-        self.black_btn.bind("<Button-1>", self.black.bot_trigger, add="+")
-
+        self.white_combo.bind("<<ComboboxSelected>>", self.set_white)
+        self.black_combo.bind("<<ComboboxSelected>>", self.set_black)
         self._root.mainloop()
 
 
@@ -111,6 +127,32 @@ class GameManager:
         if self.live_board.ply() > 0:
             self.live_board.pop()
             self.live_board.render()
+
+
+    def set_white(self, event):
+        selected_player = self.white_combo.get()
+        if selected_player != type(self.white).__name__:
+            if selected_player == "HumanPlayer":
+                self.set_player1(HumanPlayer)
+            else:
+                try:
+                    new_player = getattr(self._bots[selected_player], selected_player)
+                    self.set_player1(new_player)
+                except AttributeError:
+                    print(f"Unable to find bot: {selected_player}")
+
+
+    def set_black(self, event):
+        selected_player = self.black_combo.get()
+        if selected_player != type(self.black).__name__:
+            if selected_player == "HumanPlayer":
+                self.set_player2(HumanPlayer)
+            else:
+                try:
+                    new_player = getattr(self._bots[selected_player], selected_player)
+                    self.set_player2(new_player)
+                except AttributeError:
+                    print(f"Unable to find bot: {selected_player}")
 
 
     def log_info(self, text, analysis=False):
@@ -125,6 +167,8 @@ class GameManager:
             self._analysis_log.insert(tk.END, text)
             self._analysis_log.configure(state="disabled")
 
+
 g = GameManager()
-g.set_players(HumanPlayer, Bot)
+g.set_player1(HumanPlayer)
+g.set_player2(HumanPlayer)
 g.begin()
