@@ -1,0 +1,18 @@
+"""
+This is an example of how to create a custom chess bot.
+"""
+from src.players import Bot
+
+class EmptyBot(Bot): # Class name must match the file name
+    def evaluate_pos(self, board):
+        """
+        The evaluate function overrides the method in Bot, and
+        returns the evaluation of given board state. The move that leads
+        to the position with the highest value returned from this method is
+        chosen. If multiple moves are tied, one of them is chosen at random.
+        Define the bot logic here.
+        `self.color` is a bool to determine if the bot is white.
+        `self.play_board` is a chess.Board object representing the current board
+                          and is shared between both players in the game.
+        """
+        return 0
