@@ -6,8 +6,7 @@ PIECE_VALUES = {chess.PAWN:1,
                 chess.KNIGHT:2.5,
                 chess.BISHOP:3,
                 chess.ROOK:5,
-                chess.QUEEN:10,
-                chess.KING:1000}
+                chess.QUEEN:10}
 BOT_DEPTH_PLY = 2
 
 
@@ -81,8 +80,10 @@ class Bot(Player):
     def get_move_score(self, move, board, depth):
         self._search_calls += 1
         board.push(move)
-        if depth == 0 or board.is_game_over():
+        if depth == 0:
             best = self.evaluate_pos(board)
+        elif board.is_game_over():
+            best = 1000 if board.outcome().winner == self.color else -1000
         else:
             best = -1e9 if board.turn == self.color else 1e9
             chooser = max if board.turn == self.color else min
