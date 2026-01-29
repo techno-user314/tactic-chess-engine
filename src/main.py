@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 
-from boards import Board, AnalysisBoard
+from boards import LiveBoard, AnalysisBoard
 from players import HumanPlayer
 from bot_loader import get_bots
 from ui_helper import *
@@ -32,7 +32,7 @@ class GameManager:
                                      row=1, column=i, padding=PADDING)
                     for i in range(3)]
         self.white_board = AnalysisBoard(canvases[0])
-        self.live_board = Board(canvases[1])
+        self.live_board = LiveBoard(canvases[1])
         self.black_board = AnalysisBoard(canvases[2])
 
         # --- Player controls ---
