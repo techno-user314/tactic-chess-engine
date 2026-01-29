@@ -60,6 +60,7 @@ class Bot(Player):
         self.analysis_board = analysis_board
 
         self.move_scores = {}
+        self._last_score = 0
         self._search_calls = 0
 
     # --- Event response ---
@@ -115,11 +116,14 @@ class Bot(Player):
         self.log(alog_text, True)
 
         # Sync the analysis board with the current position minus last move
+        relative_scores = {move: score - self._last_score
+                           for move, score in self.move_scores.items()}
         self.analysis_board.set_fen(self.play_board.fen())
-        self.analysis_board.set_scores(self.move_scores)
+        self.analysis_board.set_scores(relative_scores)
         self.analysis_board.selected_square = best_move.from_square
         self.analysis_board.render()
 
+        self._last_score = best_move_score
         self.play_board.play_move(best_move)
 
     # --- Position scoring logic ---
